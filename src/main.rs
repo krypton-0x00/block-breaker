@@ -1,3 +1,20 @@
+use raylib::prelude::*;
+mod block;
+use block::{Block, Vec2D};
+
 fn main() {
-    println!("Hello, world!");
+    let (mut rl, thread) = raylib::init().size(640, 480).title("Hello, World").build();
+
+    let position = Vec2D::new(50.0, 230.0);
+    let b1 = Block::new(position, 30.0, 100.0, Color::PINK.into());
+
+    while !rl.window_should_close() {
+        let mut d = rl.begin_drawing(&thread);
+
+        d.clear_background(Color::BLACK);
+
+        b1.draw();
+
+        d.draw_text("Hello, world!", 12, 12, 20, Color::GREEN);
+    }
 }
