@@ -1,4 +1,4 @@
-use std::{process::exit, thread::sleep, time::Duration};
+use std::process::exit;
 
 use raylib::prelude::*;
 mod ball;
@@ -32,6 +32,25 @@ fn main() {
     let ball_color = Color::WHITE.into();
     let mut ball = Ball::new(ball_position, ball_speed, ball_radius, ball_color);
 
+    let mut bricks: Vec<Block> = Vec::new();
+    let mut brick_position: Vec2D = Vec2D::new(30.0, 10.0);
+
+    // TODO: get rid of this shitttttt:
+    for _i in 1..7 {
+        let block = Block::new(
+            Vec2D {
+                x: brick_position.x,
+                y: brick_position.y,
+            },
+            30.0,
+            70.0,
+            0.0,
+            Color::YELLOW.into(),
+        );
+        bricks.push(block);
+        brick_position.x += (30 + 70 + 5) as f32;
+    }
+
     while !rl.window_should_close() {
         let deltatime = rl.get_frame_time();
         paddle.movement(&mut rl);
@@ -63,6 +82,12 @@ fn main() {
                 ball.speed.y *= -1.0;
             }
         }
+        for item in &mut bricks {
+            if item.check_collision(&mut ball) {
+                // println!("Collided {}", item.position.x)
+                item.is_broken = true;
+            }
+        }
         //if fell of
         if ball.position.y + ball.radius >= rl.get_screen_height() as f32 {
             ball.position.y = rl.get_screen_height() as f32 + ball.radius;
@@ -86,6 +111,12 @@ fn main() {
                 exit(0);
             }
         }
+
+        bricks.iter().for_each(|item| {
+            if !item.is_broken {
+                item.draw(&mut d);
+            }
+        });
 
         paddle.draw(&mut d);
         ball.draw(&mut d);

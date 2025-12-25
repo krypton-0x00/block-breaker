@@ -4,6 +4,9 @@ use raylib::{
     prelude::{RaylibDraw, RaylibDrawHandle},
 };
 
+use crate::ball::Ball;
+
+#[derive(Debug)]
 pub struct Vec2D {
     pub x: f32,
     pub y: f32,
@@ -15,6 +18,7 @@ impl Vec2D {
     }
 }
 
+#[derive(Debug)]
 pub struct Block {
     pub position: Vec2D,
     pub height: f32,
@@ -42,6 +46,9 @@ impl Block {
             width: self.width,
             height: self.height,
         }
+    }
+    pub fn check_collision(&mut self, ball: &mut Ball) -> bool {
+        ball.check_collision(self.get_rect().into())
     }
     pub fn draw(&self, d: &mut RaylibDrawHandle) {
         let block = Rectangle {
