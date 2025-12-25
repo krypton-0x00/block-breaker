@@ -1,7 +1,4 @@
-use raylib::{
-    ffi::{GetScreenHeight, GetScreenWidth},
-    prelude::*,
-};
+use raylib::prelude::*;
 mod ball;
 mod block;
 use ball::Ball;
@@ -14,12 +11,9 @@ fn main() {
 
     let b1 = Block::new(position, 30.0, 100.0, Color::PINK.into());
     let ball = Ball::new(
-        Vec2D {
-            x: unsafe { (GetScreenWidth() / 2) as f32 },
-            y: unsafe { (GetScreenHeight() - 50) as f32 },
-        },
         Vec2D { x: 1.0, y: 1.0 },
-        5.0,
+        Vec2D { x: 1.0, y: 1.0 },
+        20.0,
         Color::WHITE.into(),
     );
 
@@ -29,6 +23,7 @@ fn main() {
         d.clear_background(Color::BLACK);
 
         b1.draw();
-        ball.draw();
+
+        d.draw_text("Hello, world!", 12, 12, 20, Color::GREEN);
     }
 }
