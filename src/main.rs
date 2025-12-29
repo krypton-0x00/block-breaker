@@ -101,10 +101,19 @@ fn main() {
                 ball.speed.x *= 1.0;
             }
         }
+        //TODO: improve this
+        //ball bouncing
+        bricks.iter_mut().for_each(|brick| {
+            if brick.check_collision(&mut ball) {
+                if !brick.is_broken {
+                    ball.speed.y *= -1.0;
+                }
+            }
+        });
+
         //collision of ball with bricks
         for item in &mut bricks {
             if item.check_collision(&mut ball) {
-                // println!("Collided {}", item.position.x)
                 item.is_broken = true;
             }
         }
