@@ -3,8 +3,11 @@ use raylib::prelude::*;
 use std::process::exit;
 mod ball;
 mod block;
+mod state;
 use ball::Ball;
 use block::{Block, Vec2D};
+
+use crate::state::STATE;
 
 fn main() {
     let (mut rl, thread) = raylib::init().size(640, 480).title("Block-Breaker").build();
@@ -21,8 +24,6 @@ fn main() {
         Color::PINK.into(),
     );
 
-    let screen_height = rl.get_screen_height();
-
     let ball_x = paddle_x;
     let ball_y = (rl.get_screen_height() - 50) as f32;
     let ball_position = Vec2D::new(ball_x, ball_y);
@@ -32,6 +33,7 @@ fn main() {
     let mut ball = Ball::new(ball_position, ball_speed, ball_radius, ball_color);
 
     let mut bricks = Vec::with_capacity(ROWS * COLS);
+    let mut game_state = STATE::Playing;
 
     const BRICK_WIDTH: f32 = 70.0;
     const BRICK_HEIGHT: f32 = 30.0;
@@ -71,104 +73,117 @@ fn main() {
     while !rl.window_should_close() {
         let deltatime = rl.get_frame_time();
         paddle.movement(&mut rl);
-
-        ball.position.x += ball.speed.x * deltatime;
-        ball.position.y += ball.speed.y * deltatime;
-
-        //left
-        if ball.position.x + ball.radius >= rl.get_screen_width() as f32 {
-            ball.position.x = (rl.get_screen_width() as f32) - ball.radius;
-            ball.speed.x *= -1 as f32;
-        }
-        //top
-        if ball.position.y + ball.radius <= 0 as f32 {
-            ball.position.y = (0 as f32) + ball.radius;
-            ball.speed.y *= -1 as f32;
-        }
-        //right
-        if ball.position.x + ball.radius <= 0.0 {
-            ball.position.x = 0.0 + ball.radius;
-            ball.speed.x *= -1 as f32;
-        }
-
-        //collision bw ball and paddle
-        if ball.check_collision(paddle.get_rect().into()) {
-            if ball.speed.y < 0.0 {
-                ball.speed.y *= 1.0;
-                ball.speed.x *= -1.0;
-            } else {
-                ball.speed.y *= -1.0;
-                ball.speed.x *= 1.0;
-            }
-        }
-        //TODO: improve this
-        //ball bouncing
-        bricks.iter_mut().for_each(|brick| {
-            if brick.check_collision(&mut ball) {
-                if !brick.is_broken {
-                    ball.speed.y *= -1.0;
-                }
-            }
-        });
-
-        //collision of ball with bricks
-        for item in &mut bricks {
-            if item.check_collision(&mut ball) {
-                item.is_broken = true;
-            }
-        }
-
-        //DEBUG
-        if rl.is_key_down(KeyboardKey::KEY_BACKSPACE) {
-            bricks.clear();
-        }
-
-        //if fell of
-        if ball.position.y + ball.radius >= rl.get_screen_height() as f32 {
-            ball.position.y = rl.get_screen_height() as f32 + ball.radius;
-            ball.fellof = true;
-        }
+        let key_backspace = rl.is_key_down(KeyboardKey::KEY_BACKSPACE);
+        let screen_height = rl.get_screen_height();
+        let screen_width = rl.get_screen_width();
 
         let mut d = rl.begin_drawing(&thread);
-        d.clear_background(Color::BLACK);
 
-        if bricks.is_empty() {
-            d.draw_text("You Won", 210, screen_height / 2 - 30, 50, Color::GREEN);
-            d.draw_text(
-                "Press ESC to exit",
-                210,
-                screen_height / 2 + 30,
-                25,
-                Color::YELLOW,
-            );
+        match game_state {
+            STATE::Playing => {
+                ball.position.x += ball.speed.x * deltatime;
+                ball.position.y += ball.speed.y * deltatime;
 
-            if d.is_key_down(KeyboardKey::KEY_ESCAPE) {
-                exit(0);
+                //left
+                if ball.position.x + ball.radius >= screen_width as f32 {
+                    ball.position.x = (screen_width as f32) - ball.radius;
+                    ball.speed.x *= -1 as f32;
+                }
+                //top
+                if ball.position.y + ball.radius <= 0 as f32 {
+                    ball.position.y = (0 as f32) + ball.radius;
+                    ball.speed.y *= -1 as f32;
+                }
+                //right
+                if ball.position.x + ball.radius <= 0.0 {
+                    ball.position.x = 0.0 + ball.radius;
+                    ball.speed.x *= -1 as f32;
+                }
+
+                //collision bw ball and paddle
+                if ball.check_collision(paddle.get_rect().into()) {
+                    if ball.speed.y < 0.0 {
+                        ball.speed.y *= 1.0;
+                        ball.speed.x *= -1.0;
+                    } else {
+                        ball.speed.y *= -1.0;
+                        ball.speed.x *= 1.0;
+                    }
+                }
+                //TODO: improve this
+                //ball bouncing
+                bricks.iter_mut().for_each(|brick| {
+                    if brick.check_collision(&mut ball) {
+                        if !brick.is_broken {
+                            ball.speed.y *= -1.0;
+                        }
+                    }
+                });
+
+                //collision of ball with bricks
+                for item in &mut bricks {
+                    if item.check_collision(&mut ball) {
+                        item.is_broken = true;
+                    }
+                }
+
+                //DEBUG
+                if key_backspace {
+                    bricks.clear();
+                }
+
+                //if fell of
+                if ball.position.y + ball.radius >= screen_height as f32 {
+                    ball.position.y = screen_height as f32 + ball.radius;
+                    ball.fellof = true;
+                }
+
+                d.clear_background(Color::BLACK);
+
+                bricks.iter().for_each(|item| {
+                    if !item.is_broken {
+                        item.draw(&mut d);
+                    }
+                });
+
+                paddle.draw(&mut d);
+                ball.draw(&mut d);
+
+                if bricks.is_empty() {
+                    game_state = STATE::Won;
+                } else if ball.fellof {
+                    game_state = STATE::Lost;
+                }
+            }
+
+            STATE::Won => {
+                d.draw_text("You Won", 210, screen_height / 2 - 30, 50, Color::GREEN);
+                d.draw_text(
+                    "Press ESC to exit",
+                    210,
+                    screen_height / 2 + 30,
+                    25,
+                    Color::YELLOW,
+                );
+
+                if d.is_key_down(KeyboardKey::KEY_ESCAPE) {
+                    exit(0);
+                }
+            }
+            STATE::Lost => {
+                d.draw_text("You Lost!", 210, screen_height / 2 - 30, 50, Color::RED);
+                d.draw_text(
+                    "Press ESC to exit",
+                    210,
+                    screen_height / 2 + 30,
+                    25,
+                    Color::YELLOW,
+                );
+
+                if d.is_key_down(KeyboardKey::KEY_ESCAPE) {
+                    exit(0);
+                }
             }
         }
-
-        if ball.fellof {
-            d.draw_text("You Lost!", 210, screen_height / 2 - 30, 50, Color::RED);
-            d.draw_text(
-                "Press ESC to exit",
-                210,
-                screen_height / 2 + 30,
-                25,
-                Color::YELLOW,
-            );
-
-            if d.is_key_down(KeyboardKey::KEY_ESCAPE) {
-                exit(0);
-            }
-        }
-
-        bricks.iter().for_each(|item| {
-            if !item.is_broken {
-                item.draw(&mut d);
-            }
-        });
-
-        paddle.draw(&mut d);
-        ball.draw(&mut d);
     }
 }
