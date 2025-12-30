@@ -32,18 +32,20 @@ fn main() {
     let ball_color = Color::WHITE.into();
     let mut ball = Ball::new(ball_position, ball_speed, ball_radius, ball_color);
 
-    let mut bricks = Vec::with_capacity(ROWS * COLS);
     let mut game_state = STATE::Playing;
+    let mut player_score: u8 = 0;
 
     const BRICK_WIDTH: f32 = 70.0;
     const BRICK_HEIGHT: f32 = 30.0;
     const BRICK_GAP: f32 = 5.0;
 
     const START_X: f32 = 22.0;
-    const START_Y: f32 = 10.0;
+    const START_Y: f32 = 30.0;
 
     const COLS: usize = 8;
     const ROWS: usize = 6;
+
+    let mut bricks = Vec::with_capacity(ROWS * COLS);
 
     for row in 0..ROWS {
         for col in 0..COLS {
@@ -73,7 +75,10 @@ fn main() {
     while !rl.window_should_close() {
         let deltatime = rl.get_frame_time();
         paddle.movement(&mut rl);
+
+        #[cfg(debug_assertions)]
         let key_backspace = rl.is_key_down(KeyboardKey::KEY_BACKSPACE);
+
         let screen_height = rl.get_screen_height();
         let screen_width = rl.get_screen_width();
 
@@ -116,6 +121,7 @@ fn main() {
                     if brick.check_collision(&mut ball) {
                         if !brick.is_broken {
                             ball.speed.y *= -1.0;
+                            player_score += 1;
                         }
                     }
                 });
@@ -127,7 +133,7 @@ fn main() {
                     }
                 }
 
-                //DEBUG
+                #[cfg(debug_assertions)]
                 if key_backspace {
                     bricks.clear();
                 }
@@ -148,6 +154,13 @@ fn main() {
 
                 paddle.draw(&mut d);
                 ball.draw(&mut d);
+                d.draw_text(
+                    format!("Score: {}", player_score).as_str(),
+                    50,
+                    10,
+                    10,
+                    Color::WHITE,
+                );
 
                 if bricks.is_empty() {
                     game_state = STATE::Won;
